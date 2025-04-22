@@ -130,7 +130,16 @@
         <div class="gallery-grid" id="gallery-container"></div>
       </div>
     </div>
-  </div>  <script>
+  </div>  
+
+
+<audio id="bg-music" autoplay loop>
+  <source src="add music" type="audio/mpeg">
+</audio>
+
+
+
+<script>
     const SUPABASE_URL = "https://your-supabase-url.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oeWhqbWxxd3JzbnZrYWVkcmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzNTI2MTgsImV4cCI6MjA1NzkyODYxOH0.osbOzVr97toPM94Vz77SlCVYKGbD5Ss_rdtF-CktAWo";
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -211,5 +220,38 @@
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) showDashboard();
     });
+
+
+
+
+  // For mobile browsers that block autoplay
+  const audio = document.getElementById("bg-music");
+
+  // Try to play immediately
+  audio.play().catch(() => {
+    // Show play button if autoplay fails
+    const btn = document.createElement("button");
+    btn.innerText = "Tap to Play Music";
+    btn.style = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      font-size: 16px;
+      background: pink;
+      border: none;
+      border-radius: 10px;
+      z-index: 9999;
+    `;
+    document.body.appendChild(btn);
+
+    btn.onclick = () => {
+      audio.play();
+      btn.remove(); // Hide the button after playing
+    };
+  });
+
+
   </script></body>
 </html>
