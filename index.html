@@ -2,10 +2,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KO.3</title>
+  <title>KO.3 Cloudinary Version</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* Login + Dashboard merged styles */
     body {
       margin: 0;
       padding: 0;
@@ -33,11 +32,6 @@
       background: linear-gradient(45deg, #00ffcc, #ff00cc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      animation: glow 1.5s infinite alternate;
-    }
-    @keyframes glow {
-      0% { text-shadow: 0 0 5px #00ffcc; }
-      100% { text-shadow: 0 0 20px #ff00cc; }
     }
     .input-field, .neon-btn {
       width: 100%;
@@ -104,6 +98,7 @@
   </style>
 </head>
 <body>
+  <!-- Login Page -->
   <div id="login-page" class="container">
     <div class="glass-card">
       <h1 class="neon-text">KO.3</h1>
@@ -113,7 +108,7 @@
       <button class="neon-btn" onclick="signUp()">Sign Up</button>
       <p id="error-message"></p>
     </div>
-  </div>  <div id="dashboard" class="hidden">
+  </div>  <!-- Dashboard -->  <div id="dashboard" class="hidden">
     <div class="sidebar">
       <h1 class="logo">KO.3</h1>
       <nav>
@@ -122,28 +117,31 @@
         <button id="logout-btn">Log Out</button>
       </nav>
       <p class="footer">Created by MR. STRANGER</p>
-    </div><div class="main-content">
-  <div id="memory-section">
-    <h2>Your Memory</h2>
-    <div class="looping-photos" id="loop-container"></div>
-    <button class="upload-plus" id="upload-plus">+</button>
-    <input type="file" id="upload-photo" accept="image/*" style="display:none;">
-  </div>
-  <div id="gallery-section" class="hidden">
-    <h2>Gallery</h2>
-    <div class="gallery-grid" id="gallery-container"></div>
-  </div>
-</div>
-
+    </div>
+    <div class="main-content">
+      <div id="memory-section">
+        <h2>Your Memory</h2>
+        <div class="looping-photos" id="loop-container"></div>
+        <button class="upload-plus" id="upload-plus">+</button>
+        <input type="file" id="upload-photo" accept="image/*" style="display:none;">
+      </div>
+      <div id="gallery-section" class="hidden">
+        <h2>Gallery</h2>
+        <div class="gallery-grid" id="gallery-container"></div>
+      </div>
+    </div>
   </div>  <script>
-    const supabaseUrl = "https://your-supabase-url.supabase.co";
-    const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oeWhqbWxxd3JzbnZrYWVkcmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzNTI2MTgsImV4cCI6MjA1NzkyODYxOH0.osbOzVr97toPM94Vz77SlCVYKGbD5Ss_rdtF-CktAWo";
-    const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+    const SUPABASE_URL = "https://your-supabase-url.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oeWhqbWxxd3JzbnZrYWVkcmJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIzNTI2MTgsImV4cCI6MjA1NzkyODYxOH0.osbOzVr97toPM94Vz77SlCVYKGbD5Ss_rdtF-CktAWo";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const CLOUD_NAME = "your-cloud-name";
+    const UPLOAD_PRESET = "your-upload-preset";
 
     async function login() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) document.getElementById("error-message").textContent = error.message;
       else showDashboard();
     }
@@ -159,13 +157,12 @@
     function showDashboard() {
       document.getElementById("login-page").classList.add("hidden");
       document.getElementById("dashboard").classList.remove("hidden");
-      loadImages();
     }
 
-    document.getElementById("logout-btn").addEventListener("click", async () => {
+    document.getElementById("logout-btn").onclick = async () => {
       await supabase.auth.signOut();
       window.location.reload();
-    });
+    };
 
     document.getElementById("memory-btn").onclick = () => {
       document.getElementById("memory-section").classList.remove("hidden");
@@ -179,29 +176,36 @@
 
     document.getElementById("upload-plus").onclick = () => document.getElementById("upload-photo").click();
 
-    document.getElementById("upload-photo").addEventListener("change", async (event) => {
+    document.getElementById("upload-photo").addEventListener("change", (event) => {
       const file = event.target.files[0];
       if (!file) return;
 
-      const { data, error } = await supabase.storage.from("your-memory-bucket").upload(`images/${file.name}`, file);
-      if (error) return alert("Upload failed");
-      loadImages();
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", UPLOAD_PRESET);
+
+      fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+        method: "POST",
+        body: formData
+      })
+      .then((res) => res.json())
+      .then((data) => {
+        const imageUrl = data.secure_url;
+        addPhotoToUI(imageUrl);
+      })
+      .catch((err) => console.error("Upload failed:", err));
     });
 
-    async function loadImages() {
-      const { data, error } = await supabase.storage.from("your-memory-bucket").list("images");
-      const gallery = document.getElementById("gallery-container");
+    function addPhotoToUI(url) {
+      const img = document.createElement("img");
+      img.src = url;
+
       const loop = document.getElementById("loop-container");
-      if (error) return;
-      gallery.innerHTML = "";
-      loop.innerHTML = "";
-      data.forEach((file, index) => {
-        const url = `${supabaseUrl}/storage/v1/object/public/your-memory-bucket/images/${file.name}`;
-        const img = document.createElement("img");
-        img.src = url;
-        gallery.appendChild(img.cloneNode());
-        if (index < 10) loop.appendChild(img);
-      });
+      const gallery = document.getElementById("gallery-container");
+
+      if (loop.children.length >= 10) loop.removeChild(loop.children[0]);
+      loop.appendChild(img);
+      gallery.appendChild(img.cloneNode());
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
