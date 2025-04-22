@@ -1,0 +1,211 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KO.3</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* Login + Dashboard merged styles */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Orbitron', sans-serif;
+      background: black;
+      color: cyan;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 0 20px cyan;
+      width: 300px;
+      text-align: center;
+    }
+    .neon-text {
+      font-size: 2rem;
+      background: linear-gradient(45deg, #00ffcc, #ff00cc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: glow 1.5s infinite alternate;
+    }
+    @keyframes glow {
+      0% { text-shadow: 0 0 5px #00ffcc; }
+      100% { text-shadow: 0 0 20px #ff00cc; }
+    }
+    .input-field, .neon-btn {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: none;
+      font-family: inherit;
+    }
+    .neon-btn {
+      background: linear-gradient(45deg, #00ffcc, #ff00cc);
+      color: white;
+      cursor: pointer;
+    }
+    .hidden { display: none; }
+    .sidebar {
+      position: fixed;
+      width: 200px;
+      height: 100%;
+      background: #111;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    nav button {
+      display: block;
+      margin: 10px 0;
+      padding: 10px;
+      background: transparent;
+      color: cyan;
+      border: 1px solid cyan;
+      cursor: pointer;
+    }
+    #logout-btn {
+      background: red;
+      color: white;
+      border: none;
+    }
+    .main-content {
+      margin-left: 220px;
+      padding: 20px;
+    }
+    .looping-photos, .gallery-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .looping-photos img, .gallery-grid img {
+      width: 200px;
+      height: 200px;
+      border: 2px solid cyan;
+      border-radius: 5px;
+    }
+    .upload-plus {
+      font-size: 40px;
+      background: cyan;
+      color: black;
+      border: none;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="login-page" class="container">
+    <div class="glass-card">
+      <h1 class="neon-text">KO.3</h1>
+      <input type="email" id="email" class="input-field" placeholder="Email" required />
+      <input type="password" id="password" class="input-field" placeholder="Password" required />
+      <button class="neon-btn" onclick="login()">Login</button>
+      <button class="neon-btn" onclick="signUp()">Sign Up</button>
+      <p id="error-message"></p>
+    </div>
+  </div>  <div id="dashboard" class="hidden">
+    <div class="sidebar">
+      <h1 class="logo">KO.3</h1>
+      <nav>
+        <button id="memory-btn">Your Memory</button>
+        <button id="gallery-btn">Gallery</button>
+        <button id="logout-btn">Log Out</button>
+      </nav>
+      <p class="footer">Created by MR. STRANGER</p>
+    </div><div class="main-content">
+  <div id="memory-section">
+    <h2>Your Memory</h2>
+    <div class="looping-photos" id="loop-container"></div>
+    <button class="upload-plus" id="upload-plus">+</button>
+    <input type="file" id="upload-photo" accept="image/*" style="display:none;">
+  </div>
+  <div id="gallery-section" class="hidden">
+    <h2>Gallery</h2>
+    <div class="gallery-grid" id="gallery-container"></div>
+  </div>
+</div>
+
+  </div>  <script>
+    const supabaseUrl = "https://your-supabase-url.supabase.co";
+    const supabaseAnonKey = "your-anon-key";
+    const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+    async function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) document.getElementById("error-message").textContent = error.message;
+      else showDashboard();
+    }
+
+    async function signUp() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) document.getElementById("error-message").textContent = error.message;
+      else alert("Signup successful. Please log in.");
+    }
+
+    function showDashboard() {
+      document.getElementById("login-page").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+      loadImages();
+    }
+
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      window.location.reload();
+    });
+
+    document.getElementById("memory-btn").onclick = () => {
+      document.getElementById("memory-section").classList.remove("hidden");
+      document.getElementById("gallery-section").classList.add("hidden");
+    };
+
+    document.getElementById("gallery-btn").onclick = () => {
+      document.getElementById("gallery-section").classList.remove("hidden");
+      document.getElementById("memory-section").classList.add("hidden");
+    };
+
+    document.getElementById("upload-plus").onclick = () => document.getElementById("upload-photo").click();
+
+    document.getElementById("upload-photo").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const { data, error } = await supabase.storage.from("your-memory-bucket").upload(`images/${file.name}`, file);
+      if (error) return alert("Upload failed");
+      loadImages();
+    });
+
+    async function loadImages() {
+      const { data, error } = await supabase.storage.from("your-memory-bucket").list("images");
+      const gallery = document.getElementById("gallery-container");
+      const loop = document.getElementById("loop-container");
+      if (error) return;
+      gallery.innerHTML = "";
+      loop.innerHTML = "";
+      data.forEach((file, index) => {
+        const url = `${supabaseUrl}/storage/v1/object/public/your-memory-bucket/images/${file.name}`;
+        const img = document.createElement("img");
+        img.src = url;
+        gallery.appendChild(img.cloneNode());
+        if (index < 10) loop.appendChild(img);
+      });
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) showDashboard();
+    });
+  </script></body>
+</html>
